@@ -1,175 +1,100 @@
-# Generate More: Character-Level Language Modeling
-## Abstract
+# **Neural & Statistical Language Modeling Project**
 
-This repository investigates the problem of character-level language modeling, beginning from purely statistical baselines and extending toward neural network architectures. The study explores bigram models, bag-of-words, multilayer perceptrons (MLPs), recurrent neural networks (RNNs), gated recurrent units (GRUs), and transformers. By contrasting count-based statistical methods with neural approaches, this work emphasizes the trade-offs between interpretability, simplicity, and expressive capacity in sequence modeling.
+This repository documents my research-oriented journey from **statistical models** to **deep neural networks** for **character-level language modeling** (e.g., generating names).
 
----
+The project evolves progressively:
 
-## 1. Introduction
-
-Language modeling is a fundamental task in natural language processing (NLP), aimed at estimating the probability distribution of a sequence of tokens. At the character level, the model learns dependencies between individual characters rather than entire words.
-
-The motivation of this project, named **Generate More**, is to construct models that produce additional sequences resembling the style of the training data. Beginning with statistical bigram modeling, this repository demonstrates the limitations of purely frequency-based approaches and motivates the use of parameterized neural networks capable of generalization.
+1. From **co-occurrence counts** and **probability distributions** (Statistical Approach).
+2. To **trainable shallow neural networks**.
+3. To **embedding-based MLPs** (inspired by Bengio et al., 2003).
+4. Finally, to **deep multi-layer perceptrons with BatchNorm**, implemented almost entirely **from scratch**.
 
 ---
 
-## 2. Related Work
+## **Project Structure**
 
-* **Statistical N-gram Models** have historically provided simple baselines by capturing local token dependencies.
-* **Neural Language Models** (e.g., Bengio et al., 2003) introduced distributed representations and enabled capturing longer-range dependencies.
-* **Recurrent Architectures** such as RNNs and GRUs advanced sequence modeling through temporal recurrence.
-* **Transformers** (Vaswani et al., 2017) represent the current state-of-the-art, leveraging attention mechanisms for efficient context modeling.
-
-This repository replicates this progression to illustrate the conceptual evolution from counts to learned representations.
-
----
-
-## 3. Methodology
-
-### 3.1 Statistical Bigram Model
-
-**Bigram Count Construction**
-
-```python
-# Construct bigram frequency counts from character sequences
-biagram_count = dict()
-for w in words:
-    chars = ["<S>"] + list(w) + ["<E>"]
-    for ch1, ch2 in zip(chars, chars[1:]):
-        bigram = (ch1, ch2)
-        biagram_count[bigram] = biagram_count.get(bigram, 0) + 1
 ```
-
-**Probability Normalization & Sampling**
-
-```python
-# Normalize counts into conditional probabilities
-P = N.float()
-P /= P.sum(dim=1, keepdim=True)
-
-# Sequential sampling procedure for text generation
-generator = torch.Generator().manual_seed((2147483647))
-for i in range(5):
-    idx = 0
-    while True:
-        p = P[idx]
-        idx = torch.multinomial(p, num_samples=1, generator=generator, replacement=True).item()
-        print(''.join(itos[idx]), end = '')
-        if idx == 0:
-            break
-    print()
-```
-
-**Loss Calculation: Negative Log-Likelihood**
-
-```python
-# Compute the average negative log-likelihood of the dataset
-log_likelihood = 0.0
-n = 0
-for w in words:
-    chars = ['.'] + list(w) + ['.']
-    for ch1, ch2 in zip(chars, chars[1:]):
-        bigram = (ch1, ch2) 
-        idx1 = stoi[ch1]
-        idx2 = stoi[ch2]
-        prob = P[idx1, idx2]
-        logprob = torch.log(prob)
-        log_likelihood += logprob
-        negative_log_likelihood = -log_likelihood
-        n += 1
-
-print(f"log likelihood = {log_likelihood}")
-print(f"negative log likelihood (Loss Function) = {(negative_log_likelihood):.4f}")
-avg_statical_loss = negative_log_likelihood/n
-print(f"Average negative log likelihood = {avg_statical_loss:.4f}")
+├── 1_stastical_approach.ipynb      # Count-based bigram model (Part 1)
+├── 2_neural_network_approach.ipynb # Intro to NN language modeling (Part 2)
+├── 3_MLP_v1.ipynb                  # 2-layer MLP with embeddings (Bengio-style)
+├── 3_MLP_v2.ipynb                  # Improved MLP, optimization tweaks
+├── 3_MLP_v3.ipynb                  # Deeper MLP exploration
+├── 3_MLP_v4.ipynb                  # Deep MLPs from scratch (Linear, BatchNorm, Tanh)
+├── LICENSE
+├── README.md
+├── names.txt                       # Dataset of names for training
 ```
 
 ---
 
-### 3.2 Neural Approaches
+## **Progressive Research Timeline**
 
-**Training Data Preparation**
-
-```python
-# Construct (input, output) training pairs for neural network models
-x, y = [], []
-for w in words[:5]:
-    chs = ['.'] + list(w) + ['.']
-    for ch1, ch2 in zip(chs, chs[1:]):
-        bigram = (ch1, ch2)
-        
-        idx1 = stoi[ch1]
-        idx2 = stoi[ch2]
-
-        print(f"{bigram} = {idx1}, {idx2}")
-        print(f"If input is: '{bigram[0]}' ({idx1}) | output will be: '{bigram[1]}' ({idx2})")
-        x.append(idx1)
-        y.append(idx2)
-
-print()
-print("Constructed training pairs: ", end = " ")
-print(f"x = {x}, y = {y}")
-```
+| Version          | Notebook                           | Description                 | Key Innovations                                                                               | Limitations                                 |
+| ---------------- | ---------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **Statistical**  | `1_stastical_approach.ipynb`       | Bigram probability model    | Simple counts, probability distributions                                                      | No generalization beyond seen pairs         |
+| **Neural v1–v2** | `2_neural_network_approach.ipynb`  | First NN for LM             | Trainable parameters + backpropagation                                                        | Shallow, limited representation             |
+| **MLP v1**       | `3_MLP_v1.ipynb`                   | 2-layer MLP with embeddings | Learns distributed word representations (Bengio et al., 2003)                                 | Small-scale, no normalization               |
+| **MLP v2–v3**    | `3_MLP_v2.ipynb`, `3_MLP_v3.ipynb` | Scaling MLPs deeper         | Better optimization, nonlinearities                                                           | Still unstable without normalization        |
+| **MLP v4**       | `3_MLP_v4.ipynb`                   | Deep custom MLP framework   | From-scratch **Linear, BatchNorm, Tanh**, training loop. Comparison of Plain vs BatchNorm MLP | Training stability sensitive to hyperparams |
 
 ---
 
-## 4. Experiments
+## **Core Concepts**
 
-### 4.3 Neural Models
+### Experiment 1: Statistical Approach (Part 1)
 
-**Loss Evaluation Example**
-
-```python
-# Training our Neural Network
-import torch.nn.functional as F
-xenc = F.one_hot(x, num_classes = 27).float()
-
-for i in range(500):
-    # Forward pass
-    logits = xenc @ weight
-    count = torch.exp(logits)
-    probs = count / count.sum(dim = 1, keepdims = True) # Probabilities for next character assigned by the Model
-    loss = -probs[torch.arange(len(y)), y].log().mean()
-
-    if i % 100 == 0:
-        print(f"Loss at epoch {i}: {loss}")
-
-    # Backward pass
-    weight.grad = None
-    loss.backward()
-
-    # Update the Model's Parameter
-    lr = 50
-    weight.data -= lr * weight.grad
-
-# For storing it into a dict
-neural_network_loss = loss
-```
+* Constructed **bigram probability distributions** from dataset.
+* No learnable parameters → purely count-based.
+* Limitation: fails on unseen contexts.
 
 ---
 
-## 5. Discussion
+### Experiment 2: Neural Network Approach (Part 2)
 
-The experiments highlight the following observations:
-
-1. **Statistical Models** provide interpretability and efficiency but are limited to memorized patterns.
-2. **Neural Networks** extend modeling capacity by learning representations that capture structure beyond observed counts.
-3. **Loss Functions** such as negative log-likelihood serve as a unifying principle, applicable to both statistical and neural approaches.
+* Transitioned to **trainable parameters** via **backpropagation**.
+* Introduced **softmax** for normalized predictions.
+* Demonstrated improvement over raw statistics.
 
 ---
 
-## 6. Conclusion
+### Experiment 3: MLP Approaches (Part 3)
 
-This repository presents an incremental journey through character-level language modeling, beginning with statistical bigram models and advancing toward neural networks. The results confirm that while statistical approaches offer an accessible baseline, neural models significantly improve performance by capturing longer dependencies and learning generalizable representations.
+#### v1: Embedding-based MLP
 
-Future directions include scaling experiments to larger corpora, extending architectures with attention mechanisms, and benchmarking against state-of-the-art transformer-based language models.
+* Inspired by **Bengio et al. (2003)**.
+* Learned **word embeddings** instead of sparse one-hot vectors.
+* Demonstrated ability to generalize and capture semantic structure.
+
+#### v2–v3: Scaling Deeper
+
+* Extended depth of MLPs, explored nonlinearities.
+* Identified optimization bottlenecks (slow convergence, gradient issues).
+
+#### v4: Deep MLP with BatchNorm (from scratch)
+
+* Implemented **custom deep learning framework**:
+
+  * `Linear` layers with Xavier initialization.
+  * `BatchNorm1d` with running statistics + learnable γ, β.
+  * `Tanh` activation function.
+  * `MLPModel` class with training loop + name generation.
+* Compared **Plain MLP** vs **BatchNorm MLP**:
+
+  * BatchNorm allowed **faster training, higher learning rates, and stability**.
+  * Generated **higher-quality names** vs earlier MLPs.
 
 ---
 
-## References
+## **Key Learnings Across Versions**
 
-1. Bengio, Y., Ducharme, R., Vincent, P., & Jauvin, C. (2003). A Neural Probabilistic Language Model. *Journal of Machine Learning Research*, 3, 1137–1155.
-2. Mikolov, T., Karafiát, M., Burget, L., Cernocký, J., & Khudanpur, S. (2010). Recurrent neural network based language model. *Interspeech*.
-3. Cho, K., van Merriënboer, B., Gulcehre, C., et al. (2014). Learning Phrase Representations using RNN Encoder–Decoder for Statistical Machine Translation. *EMNLP*.
-4. Vaswani, A., Shazeer, N., Parmar, N., et al. (2017). Attention Is All You Need. *NeurIPS*.
-5. Karpathy, A. (2022). *The makemore series*. Retrieved from [https://karpathy.ai](https://karpathy.ai)
+1. **From Counts → Parameters**: Bigram counts → trainable neural models.
+2. **From One-hot → Embeddings**: Low-dimensional continuous spaces capture semantic/syntactic similarity.
+3. **From Shallow → Deep**: Multi-layer architectures can model richer contexts.
+4. **From Vanilla → BatchNorm**: Stability and convergence drastically improved with normalization.
+
+---
+
+## **References**
+
+* Bengio, Y., Ducharme, R., Vincent, P., & Jauvin, C. (2003). *A Neural Probabilistic Language Model*. JMLR, 3, 1137–1155. [PDF](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
+* Karpathy, A. (2022). *The makemore series*. [Link](https://karpathy.ai)
