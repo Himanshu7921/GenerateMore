@@ -4,4 +4,6 @@ generate_file_structure.py
 structure.txt
 RNN_vanilla_v1_full.pt
 RNN_vanilla_v2_full.pt
+GRU_v1_full.pt
+GRU_v2_full.pt
 self_practice/
