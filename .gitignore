@@ -6,3 +6,7 @@ self_practice/
 tiny_shakespeare.txt
 saved_models/
 astra_saved_models/
+shakespeare_bpe.model
+shakespeare_bpe.vocab
+best_checkpoints/
+scribe_saved_models/
