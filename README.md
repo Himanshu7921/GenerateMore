@@ -1,100 +1,298 @@
-# **Neural & Statistical Language Modeling Project**
+# **GenerateMore: Language Modeling from First Principles**
 
-This repository documents my research-oriented journey from **statistical models** to **deep neural networks** for **character-level language modeling** (e.g., generating names).
+## **Abstract**
 
-The project evolves progressively:
+This repository documents my independent, research-oriented exploration of **language modeling**, progressing from **statistical methods** to **deep recurrent neural networks**, all implemented **from scratch**.
 
-1. From **co-occurrence counts** and **probability distributions** (Statistical Approach).
-2. To **trainable shallow neural networks**.
-3. To **embedding-based MLPs** (inspired by Bengio et al., 2003).
-4. Finally, to **deep multi-layer perceptrons with BatchNorm**, implemented almost entirely **from scratch**.
+The project has two complementary goals:
+
+1. To **reconstruct and understand classical language modeling architectures** (MLP, RNN, GRU, LSTM) directly from their original formulations and research papers.
+2. To conduct a **focused experimental study on training–inference mismatch in GRU-based language models**, demonstrating that **stateful inference is a correctness requirement**, not an implementation detail.
+
+All models are implemented manually using PyTorch **only for tensor operations and autograd**, with no reliance on high-level recurrent abstractions.
 
 ---
 
-## **Project Structure**
+## **1. Motivation**
+
+Modern deep learning frameworks abstract away many details of recurrence and state handling. While this accelerates development, it also obscures **critical modeling assumptions**, particularly the role of hidden-state propagation during inference.
+
+Through implementing language models from first principles, I observed that:
+
+> A recurrent model can be trained correctly, achieve low loss, and still fail catastrophically if its inference-time state handling violates the recurrence assumption.
+
+This repository exists to document that observation rigorously and reproducibly.
+
+---
+
+## **2. Scope of Work**
+
+This project covers **two intertwined research directions**:
+
+### **A. From-Scratch Language Model Implementations**
+
+I implemented and trained multiple families of language models inspired directly by foundational research:
+
+* Statistical n-gram models
+* Embedding-based MLP language models (Bengio et al., 2003)
+* Vanilla RNNs
+* Gated Recurrent Units (GRUs)
+* Long Short-Term Memory networks (LSTMs)
+
+Each model family was implemented explicitly to expose:
+
+* recurrence mechanics
+* parameterization
+* optimization behavior
+* representational limits
+
+---
+
+### **B. Stateful vs Stateless Inference in GRUs**
+
+Using my custom GRU implementations, I conducted controlled experiments comparing:
+
+* **Stateless inference** (hidden state reset each step)
+* **Stateful inference** (hidden state preserved across steps)
+
+The models, weights, and training procedures are identical; **only inference behavior differs**.
+
+---
+
+## **3. Experimental Design**
+
+All recurrent models were:
+
+* implemented from scratch (no `nn.RNN`, `nn.GRU`, or `nn.LSTM`)
+* trained with Backpropagation Through Time
+* optimized using AdamW
+* evaluated qualitatively via long-form generation
+
+### **Inference Modes**
+
+**Stateless Inference**
 
 ```
-├── 1_stastical_approach.ipynb      # Count-based bigram model (Part 1)
-├── 2_neural_network_approach.ipynb # Intro to NN language modeling (Part 2)
-├── 3_MLP_v1.ipynb                  # 2-layer MLP with embeddings (Bengio-style)
-├── 3_MLP_v2.ipynb                  # Improved MLP, optimization tweaks
-├── 3_MLP_v3.ipynb                  # Deeper MLP exploration
-├── 3_MLP_v4.ipynb                  # Deep MLPs from scratch (Linear, BatchNorm, Tanh)
-├── LICENSE
-├── README.md
-├── names.txt                       # Dataset of names for training
+h_prev = None
+logits = model(x_t, h_prev)
+```
+
+**Stateful Inference (Correct Usage)**
+
+```
+h_prev = None
+logits, h_prev = model(x_t, h_prev)
+```
+
+This distinction is the **central experimental variable** in the GRU studies.
+
+---
+
+## **4. Model Families**
+
+## **4.1 Astra-GRU (Character-Level Language Models)**
+
+* Dataset: Tiny Shakespeare
+* Tokenization: Characters
+* Objective: Next-character prediction
+* Purpose:
+
+  * study recurrence mechanics
+  * analyze memory scaling with depth
+  * expose inference-time failure modes
+
+---
+
+### **Astra-α Configuration**
+
+| Component            | Specification   |
+| -------------------- | --------------- |
+| Model                | Astra-α (GRU)   |
+| Embedding Dim        | 64              |
+| Hidden Dim           | 128             |
+| Number of Layers     | 1               |
+| Dropout              | 0.1             |
+| Vocabulary           | Character-level |
+| Trainable Parameters | **86,913**      |
+| Model Size           | **0.33 MB**     |
+
+**Training Configuration**
+
+| Setting         | Value             |
+| --------------- | ----------------- |
+| Optimizer       | AdamW             |
+| Learning Rate   | 3e-3              |
+| Weight Decay    | 0.01              |
+| Scheduler       | CosineAnnealingLR |
+| Batch Size      | 64                |
+| Sequence Length | 128               |
+| Epochs          | 10                |
+| Device          | CUDA              |
+
+**Architecture**
+
+```
+Embedding → GRULayer → Linear
 ```
 
 ---
 
-## **Progressive Research Timeline**
+### **Astra-β Configuration**
 
-| Version          | Notebook                           | Description                 | Key Innovations                                                                               | Limitations                                 |
-| ---------------- | ---------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **Statistical**  | `1_stastical_approach.ipynb`       | Bigram probability model    | Simple counts, probability distributions                                                      | No generalization beyond seen pairs         |
-| **Neural v1–v2** | `2_neural_network_approach.ipynb`  | First NN for LM             | Trainable parameters + backpropagation                                                        | Shallow, limited representation             |
-| **MLP v1**       | `3_MLP_v1.ipynb`                   | 2-layer MLP with embeddings | Learns distributed word representations (Bengio et al., 2003)                                 | Small-scale, no normalization               |
-| **MLP v2–v3**    | `3_MLP_v2.ipynb`, `3_MLP_v3.ipynb` | Scaling MLPs deeper         | Better optimization, nonlinearities                                                           | Still unstable without normalization        |
-| **MLP v4**       | `3_MLP_v4.ipynb`                   | Deep custom MLP framework   | From-scratch **Linear, BatchNorm, Tanh**, training loop. Comparison of Plain vs BatchNorm MLP | Training stability sensitive to hyperparams |
+| Component            | Value                      |
+| -------------------- | -------------------------- |
+| Model Name           | **Astra-β**                |
+| Architecture         | 2-layer GRU (from scratch) |
+| Embedding Dim        | 128                        |
+| Hidden Dim           | 256                        |
+| Dropout              | 0.1                        |
+| Epochs               | 15                         |
+| Optimizer            | AdamW                      |
+| Learning Rate        | 2e-3                       |
+| Scheduler            | CosineAnnealingLR          |
+| Batch Size           | 64                         |
+| Sequence Length      | 128                        |
+| Device               | CUDA                       |
+| Trainable Parameters | **715,713**                |
+| Model Size           | **2.73 MB**                |
 
----
+**Architecture**
 
-## **Core Concepts**
-
-### Experiment 1: Statistical Approach (Part 1)
-
-* Constructed **bigram probability distributions** from dataset.
-* No learnable parameters → purely count-based.
-* Limitation: fails on unseen contexts.
-
----
-
-### Experiment 2: Neural Network Approach (Part 2)
-
-* Transitioned to **trainable parameters** via **backpropagation**.
-* Introduced **softmax** for normalized predictions.
-* Demonstrated improvement over raw statistics.
+```
+Embedding → GRULayer → GRULayer → Linear
+```
 
 ---
 
-### Experiment 3: MLP Approaches (Part 3)
+### **Astra-γ Configuration**
 
-#### v1: Embedding-based MLP
+| Component            | Value                      |
+| -------------------- | -------------------------- |
+| Model Name           | **Astra-γ**                |
+| Architecture         | 3-layer GRU (from scratch) |
+| Embedding Dim        | 256                        |
+| Hidden Dim           | 512                        |
+| Dropout              | 0.1                        |
+| Epochs               | 20                         |
+| Optimizer            | AdamW                      |
+| Learning Rate        | 1e-3                       |
+| Scheduler            | CosineAnnealingLR          |
+| Batch Size           | 64                         |
+| Sequence Length      | 128                        |
+| Device               | CUDA                       |
+| Trainable Parameters | **4,383,041**              |
+| Model Size           | **16.72 MB**               |
 
-* Inspired by **Bengio et al. (2003)**.
-* Learned **word embeddings** instead of sparse one-hot vectors.
-* Demonstrated ability to generalize and capture semantic structure.
+**Architecture**
 
-#### v2–v3: Scaling Deeper
-
-* Extended depth of MLPs, explored nonlinearities.
-* Identified optimization bottlenecks (slow convergence, gradient issues).
-
-#### v4: Deep MLP with BatchNorm (from scratch)
-
-* Implemented **custom deep learning framework**:
-
-  * `Linear` layers with Xavier initialization.
-  * `BatchNorm1d` with running statistics + learnable γ, β.
-  * `Tanh` activation function.
-  * `MLPModel` class with training loop + name generation.
-* Compared **Plain MLP** vs **BatchNorm MLP**:
-
-  * BatchNorm allowed **faster training, higher learning rates, and stability**.
-  * Generated **higher-quality names** vs earlier MLPs.
-
----
-
-## **Key Learnings Across Versions**
-
-1. **From Counts → Parameters**: Bigram counts → trainable neural models.
-2. **From One-hot → Embeddings**: Low-dimensional continuous spaces capture semantic/syntactic similarity.
-3. **From Shallow → Deep**: Multi-layer architectures can model richer contexts.
-4. **From Vanilla → BatchNorm**: Stability and convergence drastically improved with normalization.
+```
+Embedding → GRULayer → GRULayer → GRULayer → Linear
+```
 
 ---
 
-## **References**
+## **4.2 Scribe-GRU (Subword-Level Language Models)**
 
-* Bengio, Y., Ducharme, R., Vincent, P., & Jauvin, C. (2003). *A Neural Probabilistic Language Model*. JMLR, 3, 1137–1155. [PDF](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
-* Karpathy, A. (2022). *The makemore series*. [Link](https://karpathy.ai)
+* Tokenization: SentencePiece (subword units)
+* Objective: Next-token prediction
+* Purpose:
+
+  * study semantic coherence
+  * analyze long-range dependency modeling
+  * amplify inference-time failure modes
+
+Subword modeling makes **state propagation substantially more critical** than character-level modeling.
+
+---
+
+### **Scribe-α Configuration**
+
+| Component            | Value         |
+| -------------------- | ------------- |
+| Model Name           | **Scribe-α**  |
+| Architecture         | 2-layer GRU   |
+| Embedding Dim        | 128           |
+| Hidden Dim           | 256           |
+| Dropout              | 0.1           |
+| Epochs               | 10            |
+| Learning Rate        | 2e-3          |
+| Trainable Parameters | **1,075,688** |
+| Model Size           | **4.1 MB**    |
+
+---
+
+### **Scribe-β Configuration**
+
+| Component            | Value         |
+| -------------------- | ------------- |
+| Model Name           | **Scribe-β**  |
+| Architecture         | 3-layer GRU   |
+| Embedding Dim        | 256           |
+| Hidden Dim           | 512           |
+| Dropout              | 0.1           |
+| Epochs               | 15            |
+| Learning Rate        | 1.5e-3        |
+| Trainable Parameters | **5,102,056** |
+| Model Size           | **19.5 MB**   |
+
+---
+
+### **Scribe-γ Configuration**
+
+| Component            | Value          |
+| -------------------- | -------------- |
+| Model Name           | **Scribe-γ**   |
+| Architecture         | 4-layer GRU    |
+| Embedding Dim        | 384            |
+| Hidden Dim           | 768            |
+| Dropout              | 0.15           |
+| Epochs               | 20             |
+| Learning Rate        | 1e-3           |
+| Trainable Parameters | **14,439,400** |
+| Model Size           | **55.1 MB**    |
+
+---
+
+## **5. Key Experimental Findings**
+
+1. **Training loss alone cannot validate recurrent models**
+2. **A GRU without carried state is functionally non-recurrent**
+3. **Correct inference yields larger gains than increased depth or epochs**
+4. **Subword models amplify inference-time errors**
+5. **Implementation correctness precedes model scaling**
+
+---
+
+## **6. Implementation Notes**
+
+* All models are implemented **from scratch**
+* No use of:
+
+  * `nn.RNN`
+  * `nn.GRU`
+  * `nn.LSTM`
+* PyTorch is used only for:
+
+  * tensor operations
+  * automatic differentiation
+  * optimization
+* Hidden-state propagation is **explicit and manually controlled**
+
+
+## See [Appendix A — Formal Recurrent Model Equations](docs/appendix_equations.md) for the full mathematical formulation.
+
+
+## **7. References**
+
+* Bengio et al., 2003 — *A Neural Probabilistic Language Model*
+* Cho et al., 2014 — *Learning Phrase Representations using RNN Encoder–Decoder*
+* Hochreiter & Schmidhuber, 1997 — *Long Short-Term Memory*
+* Karpathy, 2022 — *makemore*
+
+---
+
+## **Conclusion**
+
+> In sequence modeling, **correctness of recurrence matters more than architectural scale**.
+
+This repository demonstrates—through direct implementation and controlled experimentation—that **stateful inference is fundamental to recurrent language models**, and that violating this assumption silently invalidates model behavior.
