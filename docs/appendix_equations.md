@@ -175,7 +175,7 @@ Gradients are computed by recursively applying the chain rule backward through t
 
 $$
 \frac{\partial \mathcal{L}}{\partial \theta}
-\sum_{t=1}^{T}
+=\sum_{t=1}^{T}
 \frac{\partial \mathcal{L}}{\partial h_t}
 \frac{\partial h_t}{\partial \theta}
 $$
