@@ -182,9 +182,9 @@ $$
 
 
 
-<!-- where $( \theta )$ denotes all trainable parameters. -->
+where $( \theta )$ denotes all trainable parameters.
 
-<!-- --- -->
+---
 
 ## **A.5 Relation to Implementations in This Repository**
 
