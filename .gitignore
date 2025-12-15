@@ -10,3 +10,4 @@ shakespeare_bpe.model
 shakespeare_bpe.vocab
 best_checkpoints/
 scribe_saved_models/
+gru_saved_models/
