@@ -253,6 +253,109 @@ Subword modeling makes **state propagation substantially more critical** than ch
 
 ---
 
+## **4.3 Leviathan-LSTM (Large-Scale Recurrent Language Model)**
+
+* Dataset: Tiny Shakespeare
+* Tokenization: Characters
+* Objective: Next-character prediction
+* Purpose:
+
+  * study **LSTM gating vs GRU gating** at scale
+  * analyze **long-range memory retention** under explicit cell state
+  * evaluate **over-capacity recurrent models** on small corpora
+  * compare convergence and overfitting behavior against deep GRUs
+
+Leviathan-LSTM represents a **capacity-stress test** for recurrent architectures, pushing LSTM recurrence to ~24M parameters while maintaining correct stateful inference and layer-wise memory separation.
+
+---
+
+### **Leviathan-LSTM Configuration**
+
+| Component            | Value                       |
+| -------------------- | --------------------------- |
+| Model Name           | **Leviathan-LSTM**          |
+| Architecture         | 3-layer LSTM (from scratch) |
+| Embedding Dim        | 768                         |
+| Hidden Dim           | 1024                        |
+| Dropout              | 0.2                         |
+| Epochs               | 6                           |
+| Optimizer            | AdamW                       |
+| Learning Rate        | 1e-3                        |
+| Weight Decay         | 0.01                        |
+| Scheduler            | CosineAnnealingLR           |
+| Batch Size           | 64                          |
+| Sequence Length      | 128                         |
+| Device               | CUDA                        |
+| Trainable Parameters | **24,248,129**              |
+| Model Size           | **92.50 MB**                |
+
+---
+
+### **Architecture**
+
+```
+Embedding
+   ↓
+LSTMLayer (Layer 1)
+   ↓
+LSTMLayer (Layer 2)
+   ↓
+LSTMLayer (Layer 3)
+   ↓
+LayerNorm
+   ↓
+Linear Projection
+```
+
+Each LSTM layer maintains **independent hidden and cell states**
+$((h_t^{(l)}, c_t^{(l)}))$, ensuring proper hierarchical memory flow.
+
+---
+
+### **Implementation Notes**
+
+* LSTM cell implemented **from scratch** (no `nn.LSTM`)
+* Single bias per gate (input-side), differing from PyTorch’s dual-bias design
+* Explicit management of:
+
+  * hidden state $(h_{t})$
+  * cell state $(c_{t})$
+* **No in-place state mutation**, ensuring autograd correctness
+* Stateful inference with manual propagation of (h, c) across time
+
+---
+
+### **Training Behavior**
+
+Leviathan-LSTM exhibits **rapid convergence** due to its large memory capacity:
+
+* validation loss reaches minimum within **3 epochs**
+* overfitting begins early, consistent with over-parameterized recurrent models
+* training was intentionally limited to **6 epochs** to preserve generalization
+
+This behavior contrasts with GRU-γ, which requires more epochs to reach comparable expressiveness.
+
+---
+
+### **Comparative Context**
+
+| Model          | Params (M) | Layers | Memory Type   | Overfitting Onset |
+| -------------- | ---------- | ------ | ------------- | ----------------- |
+| Astra-γ GRU    | 4.38       | 3      | Hidden only   | Late              |
+| Scribe-γ GRU   | 14.44      | 4      | Hidden only   | Medium            |
+| Leviathan-LSTM | 24.25      | 3      | Hidden + Cell | Early             |
+
+Leviathan-LSTM confirms that **capacity amplifies both learning speed and memorization risk**, reinforcing the importance of early stopping and inference-time correctness.
+
+---
+
+### **Key Takeaway**
+
+> LSTM cell state enables stronger long-range dependency modeling than GRUs, but large LSTM models on small corpora converge extremely fast and must be trained conservatively.
+
+Leviathan-LSTM serves as a **reference point** for understanding how explicit memory gates scale in recurrent architectures.
+
+
 ## **5. Key Experimental Findings**
 
 1. **Training loss alone cannot validate recurrent models**
