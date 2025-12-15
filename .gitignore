@@ -4,10 +4,32 @@ generate_file_structure.py
 structure.txt
 self_practice/
 tiny_shakespeare.txt
-saved_models/
-astra_saved_models/
 shakespeare_bpe.model
 shakespeare_bpe.vocab
-best_checkpoints/
-scribe_saved_models/
+
+# -----------------------------------------------------------------------------
+# Trained Model Artifacts (Excluded from Version Control)
+# -----------------------------------------------------------------------------
+# These directories contain fully trained neural network checkpoints produced
+# during controlled experiments. They are intentionally excluded to:
+#   - avoid committing large binary files
+#   - keep the repository lightweight and reproducible
+#   - prevent coupling results to specific random seeds or hardware
+#   - encourage retraining from code + configuration rather than weights
+#
+# Model families:
+#   - GRU character-level name generators (names.txt)
+#   - GRU character-level language models (Tiny Shakespeare)
+#   - GRU subword-level language models (SentencePiece)
+#   - Large-scale LSTM language model (Leviathan-LSTM)
+
+# gru_saved_models/        # Character-level GRU checkpoints trained on names.txt
+# astra_saved_models/      # Character-level GRU language models trained on Tiny Shakespeare
+# scribe_saved_models/     # Subword-level (SentencePiece) GRU language models trained on Tiny Shakespeare
+# leviathan_saved_model/   # Large-scale LSTM checkpoints (Leviathan-LSTM) trained on Tiny Shakespeare
+# -----------------------------------------------------------------------------
+
 gru_saved_models/
+astra_saved_models/
+scribe_saved_models/
+leviathan_saved_model/
