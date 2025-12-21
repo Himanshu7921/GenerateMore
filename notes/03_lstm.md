@@ -230,27 +230,27 @@ These trade-offs motivated a shift away from recurrence entirely.
 
 ### Understanding Core Limitations in GRUs (Motivation):
 
-![GRU Limitations](../../math/lstm/discussing_core_limitations_in_gru_01.png)  
-![GRU Limitations](../../math/lstm/discussing_core_limitations_in_gru_02.png)
+- [GRU Limitations - 1](../math/lstm/discussing_core_limitations_in_gru_01.png)  
+- [GRU Limitations - 2](../math/lstm/discussing_core_limitations_in_gru_02.png)
 
 ---
 
 ### LSTM Gate Equations and State Update:
 
-![LSTM Equations](../../math/lstm/lstm_equations.png)  
-![LSTM Derivation](../../math/lstm/lstm_derivation.png)
+- [LSTM Equations](../math/lstm/lstm_equations.png)  
+- [LSTM Derivation](../math/lstm/lstm_derivation.png)
 
 ---
 
 ### Gradient Flow Analysis in LSTM Cell:
 
-![Gradient Flow 1](../../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_01.png)  
-![Gradient Flow 2](../../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_02.png)  
-![Gradient Flow 3](../../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_03.png)
+- [Gradient Flow 1](../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_01.png)  
+- [Gradient Flow 2](../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_02.png)  
+- [Gradient Flow 3](../math/lstm/gradient_analysis/gradient_flow_analysis_lstm_03.png)
 
 ---
 
 ### Core Memory Problems and Architectural Fixes:
 
-![Core Problem](../../math/lstm/understanding_core_problem.png)  
-![Proposed Fix](../../math/lstm/proposing_core_fixes_in_gru.png)
+- [Core Problem](../math/lstm/understanding_core_problem.png)  
+- [Proposed Fix](../math/lstm/proposing_core_fixes_in_gru.png)
