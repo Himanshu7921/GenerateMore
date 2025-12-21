@@ -196,17 +196,15 @@ That step leads directly to **gated recurrent models**.
 
 ## References to Derivations
 
-### Backpropagation Through Time derivation: 
+### Backpropagation Through Time (BPTT)
 
-  ![BPTT Derivation](../../math/rnn/rnn_bptt_derivation_01.png)
-  ![BPTT Derivation](../../math/rnn/rnn_bptt_derivation_02.png)
-  ![BPTT Derivation](../../math/rnn/rnn_bptt_derivation_03.png)
+- [BPTT derivation — step 1](../math/rnn/rnn_bptt_derivation_01.png)
+- [BPTT derivation — step 2](../math/rnn/rnn_bptt_derivation_02.png)
+- [BPTT derivation — step 3](../math/rnn/rnn_bptt_derivation_03.png)
 
 ---
 
+### Recurrent State Update Formulation
 
-
-### Recurrent state update formulation:  
-
-  ![Recurrent state update](../../math/rnn/rnn_derivation_01.png)
-  ![Recurrent state update](../../math/rnn/rnn_derivation_02.png)
+- [Recurrent state update — formulation 1](../math/rnn/rnn_derivation_01.png)
+- [Recurrent state update — formulation 2](../math/rnn/rnn_derivation_02.png)
