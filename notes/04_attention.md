@@ -259,28 +259,28 @@ This shift enables scale — but sacrifices algorithmic structure.
 
 ### Core Self-Attention Mechanics:
 
-![Self-Attention](../../math/attention/self_attention_mechanism.png)  
-![Linear Projections](../../math/attention/linear_projection_in_self_attention.png)  
-![Attention Scores](../../math/attention/attention_scores.png)  
-![Representation Update](../../math/attention/updation_of_representation.png)
+- [Self-Attention](../math/attention/self_attention_mechanism.png)  
+- [Linear Projections](../math/attention/linear_projection_in_self_attention.png)  
+- [Attention Scores](../math/attention/attention_scores.png)  
+- [Representation Update](../math/attention/updation_of_representation.png)
 
 ---
 
 ### Multi-Head Attention and Output Composition:
 
-![Multi-Head Attention](../../math/attention/MHA_mechanism.png)  
-![Multi-Head Derivation](../../math/attention/multi_head_attention_derivation.png)  
-![Output Projection](../../math/attention/output_projections_in_MHA.png)
+- [Multi-Head Attention](../math/attention/MHA_mechanism.png)  
+- [Multi-Head Derivation](../math/attention/multi_head_attention_derivation.png)  
+- [Output Projection](../math/attention/output_projections_in_MHA.png)
 
 ---
 
 ### Positional Information and Normalization:
 
-![Positional Encoding](../../math/attention/positional_information_injection.png)  
-![Normalization](../../math/attention/normalization.png)
+- [Positional Encoding](../math/attention/positional_information_injection.png)  
+- [Normalization](../math/attention/normalization.png)
 
 ---
 
 ### Architectural Overview:
 
-![Core Architecture](../../math/attention/core_architecture.png)
+- [Core Architecture](../math/attention/core_architecture.png)
