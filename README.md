@@ -1,401 +1,190 @@
-# **GenerateMore: Language Modeling from First Principles**
+# GenerateMore: Language Modeling from First Principles
 
-## **Abstract**
+## Abstract
 
-This repository documents my independent, research-oriented exploration of **language modeling**, progressing from **statistical methods** to **deep recurrent neural networks**, all implemented **from scratch**.
+This repository documents my independent, research-oriented study of **language modeling architectures**, reconstructed **from first principles**.
 
-The project has two complementary goals:
+The work traces the architectural evolution from:
 
-1. To **reconstruct and understand classical language modeling architectures** (MLP, RNN, GRU, LSTM) directly from their original formulations and research papers.
-2. To conduct a **focused experimental study on training–inference mismatch in GRU-based language models**, demonstrating that **stateful inference is a correctness requirement**, not an implementation detail.
+> **statistical models → MLPs → RNNs → GRUs → LSTMs → Attention → Transformers**
 
-All models are implemented manually using PyTorch **only for tensor operations and autograd**, with no reliance on high-level recurrent abstractions.
+with every transition motivated by **explicit assumptions, failure cases, and mathematical necessity** rather than framework convenience.
 
----
-
-## **1. Motivation**
-
-Modern deep learning frameworks abstract away many details of recurrence and state handling. While this accelerates development, it also obscures **critical modeling assumptions**, particularly the role of hidden-state propagation during inference.
-
-Through implementing language models from first principles, I observed that:
-
-> A recurrent model can be trained correctly, achieve low loss, and still fail catastrophically if its inference-time state handling violates the recurrence assumption.
-
-This repository exists to document that observation rigorously and reproducibly.
+All core models are implemented **from scratch** using PyTorch only for tensor operations and automatic differentiation.  
+No high-level recurrent or attention abstractions are used.
 
 ---
 
-## **2. Scope of Work**
+## Motivation
 
-This project covers **two intertwined research directions**:
+Modern deep-learning frameworks hide critical architectural assumptions behind high-level APIs.  
+While this accelerates development, it obscures **why models work**, **where they fail**, and **what correctness actually means**.
 
-### **A. From-Scratch Language Model Implementations**
+While implementing sequence models manually, I observed a recurring pattern:
 
-I implemented and trained multiple families of language models inspired directly by foundational research:
+> A model can train successfully, achieve low loss, and still be **structurally incorrect** at inference time.
 
-* Statistical n-gram models
-* Embedding-based MLP language models (Bengio et al., 2003)
-* Vanilla RNNs
-* Gated Recurrent Units (GRUs)
-* Long Short-Term Memory networks (LSTMs)
+In particular, recurrent models can silently fail when **hidden-state propagation assumptions are violated**, even if training appears stable.
 
-Each model family was implemented explicitly to expose:
-
-* recurrence mechanics
-* parameterization
-* optimization behavior
-* representational limits
+This repository exists to document those observations **rigorously and reproducibly**, using math, code, and controlled experiments.
 
 ---
 
-### **B. Stateful vs Stateless Inference in GRUs**
+## Scope of Work
 
-Using my custom GRU implementations, I conducted controlled experiments comparing:
-
-* **Stateless inference** (hidden state reset each step)
-* **Stateful inference** (hidden state preserved across steps)
-
-The models, weights, and training procedures are identical; **only inference behavior differs**.
+This project covers **three tightly coupled dimensions**:
 
 ---
 
-## **3. Experimental Design**
+### A. From-Scratch Architectural Implementations
 
-All recurrent models were:
+I implemented the following model families directly from their original formulations:
 
-* implemented from scratch (no `nn.RNN`, `nn.GRU`, or `nn.LSTM`)
-* trained with Backpropagation Through Time
-* optimized using AdamW
-* evaluated qualitatively via long-form generation
+- Statistical n-gram language models  
+- Embedding-based MLP language models (Bengio et al., 2003)  
+- Vanilla RNNs with explicit BPTT  
+- Gated Recurrent Units (GRUs)  
+- Long Short-Term Memory networks (LSTMs)  
+- Self-Attention and Multi-Head Attention  
+- Transformer encoder architectures  
 
-### **Inference Modes**
+Each implementation exposes:
 
-**Stateless Inference**
+- state update mechanics  
+- memory assumptions  
+- gradient flow behavior  
+- representational limits  
 
-```
-h_prev = None
-logits = model(x_t, h_prev)
-```
-
-**Stateful Inference (Correct Usage)**
-
-```
-h_prev = None
-logits, h_prev = model(x_t, h_prev)
-```
-
-This distinction is the **central experimental variable** in the GRU studies.
+All finalized implementations live in `src/`.
 
 ---
 
-## **4. Model Families**
+### B. Architectural Reasoning and Mathematical Validation
 
-## **4.1 Astra-GRU (Character-Level Language Models)**
+For every model family, I explicitly documented:
 
-* Dataset: Tiny Shakespeare
-* Tokenization: Characters
-* Objective: Next-character prediction
-* Purpose:
+- modeling assumptions  
+- structural failure modes  
+- why the next architecture was necessary  
 
-  * study recurrence mechanics
-  * analyze memory scaling with depth
-  * expose inference-time failure modes
+This reasoning is captured in:
 
----
+- `notes/` — architectural analysis and evolution  
+- `math/` — handwritten derivations, gradient analysis, and diagrams  
 
-### **Astra-α Configuration**
-
-| Component            | Specification   |
-| -------------------- | --------------- |
-| Model                | Astra-α (GRU)   |
-| Embedding Dim        | 64              |
-| Hidden Dim           | 128             |
-| Number of Layers     | 1               |
-| Dropout              | 0.1             |
-| Vocabulary           | Character-level |
-| Trainable Parameters | **86,913**      |
-| Model Size           | **0.33 MB**     |
-
-**Training Configuration**
-
-| Setting         | Value             |
-| --------------- | ----------------- |
-| Optimizer       | AdamW             |
-| Learning Rate   | 3e-3              |
-| Weight Decay    | 0.01              |
-| Scheduler       | CosineAnnealingLR |
-| Batch Size      | 64                |
-| Sequence Length | 128               |
-| Epochs          | 10                |
-| Device          | CUDA              |
-
-**Architecture**
-
-```
-Embedding → GRULayer → Linear
-```
+The notes are intended to be read **sequentially**, forming a coherent research narrative.
 
 ---
 
-### **Astra-β Configuration**
+### C. Controlled Experimental Studies
 
-| Component            | Value                      |
-| -------------------- | -------------------------- |
-| Model Name           | **Astra-β**                |
-| Architecture         | 2-layer GRU (from scratch) |
-| Embedding Dim        | 128                        |
-| Hidden Dim           | 256                        |
-| Dropout              | 0.1                        |
-| Epochs               | 15                         |
-| Optimizer            | AdamW                      |
-| Learning Rate        | 2e-3                       |
-| Scheduler            | CosineAnnealingLR          |
-| Batch Size           | 64                         |
-| Sequence Length      | 128                        |
-| Device               | CUDA                       |
-| Trainable Parameters | **715,713**                |
-| Model Size           | **2.73 MB**                |
+Using the from-scratch implementations, I conducted focused experiments on:
 
-**Architecture**
+- training vs inference mismatch in recurrent models  
+- stateful vs stateless inference behavior  
+- scaling depth vs preserving correctness  
+- character-level vs subword-level modeling  
 
-```
-Embedding → GRULayer → GRULayer → Linear
-```
+Experiments are isolated in `experiments/` and designed to test **one assumption at a time**.
 
 ---
 
-### **Astra-γ Configuration**
+## Repository Structure (How to Navigate)
+- notes/ → architectural assumptions, failures, motivations
+- math/ → derivations and gradient analysis referenced by notes
+- notebooks/ → exploratory implementations with full reasoning and storytelling
+- src/ → clean, professional .py implementations (final artifacts)
+- experiments/ → controlled empirical studies
+- artifacts/ → trained model checkpoints (excluded from version control)
 
-| Component            | Value                      |
-| -------------------- | -------------------------- |
-| Model Name           | **Astra-γ**                |
-| Architecture         | 3-layer GRU (from scratch) |
-| Embedding Dim        | 256                        |
-| Hidden Dim           | 512                        |
-| Dropout              | 0.1                        |
-| Epochs               | 20                         |
-| Optimizer            | AdamW                      |
-| Learning Rate        | 1e-3                       |
-| Scheduler            | CosineAnnealingLR          |
-| Batch Size           | 64                         |
-| Sequence Length      | 128                        |
-| Device               | CUDA                       |
-| Trainable Parameters | **4,383,041**              |
-| Model Size           | **16.72 MB**               |
 
-**Architecture**
+**Recommended reading order:**
 
-```
-Embedding → GRULayer → GRULayer → GRULayer → Linear
-```
+1. `notes/`
+2. `math/`
+3. `src/`
+4. `experiments/`
+5. `notebooks/` (for historical exploration)
 
 ---
 
-## **4.2 Scribe-GRU (Subword-Level Language Models)**
+## Key Model Families
 
-* Tokenization: SentencePiece (subword units)
-* Objective: Next-token prediction
-* Purpose:
+### Astra-GRU (Character-Level Language Models)
 
-  * study semantic coherence
-  * analyze long-range dependency modeling
-  * amplify inference-time failure modes
+Purpose:
+- analyze recurrence mechanics
+- study memory scaling with depth
+- expose inference-time failure modes
 
-Subword modeling makes **state propagation substantially more critical** than character-level modeling.
-
----
-
-### **Scribe-α Configuration**
-
-| Component            | Value         |
-| -------------------- | ------------- |
-| Model Name           | **Scribe-α**  |
-| Architecture         | 2-layer GRU   |
-| Embedding Dim        | 128           |
-| Hidden Dim           | 256           |
-| Dropout              | 0.1           |
-| Epochs               | 10            |
-| Learning Rate        | 2e-3          |
-| Trainable Parameters | **1,075,688** |
-| Model Size           | **4.1 MB**    |
+Models:
+- Astra-α (1-layer GRU)
+- Astra-β (2-layer GRU)
+- Astra-γ (3-layer GRU)
 
 ---
 
-### **Scribe-β Configuration**
+### Scribe-GRU (Subword-Level Language Models)
 
-| Component            | Value         |
-| -------------------- | ------------- |
-| Model Name           | **Scribe-β**  |
-| Architecture         | 3-layer GRU   |
-| Embedding Dim        | 256           |
-| Hidden Dim           | 512           |
-| Dropout              | 0.1           |
-| Epochs               | 15            |
-| Learning Rate        | 1.5e-3        |
-| Trainable Parameters | **5,102,056** |
-| Model Size           | **19.5 MB**   |
+Purpose:
+- analyze semantic coherence
+- study long-range dependency modeling
+- amplify inference-time errors
+
+Subword modeling makes **correct state propagation essential**, not optional.
 
 ---
 
-### **Scribe-γ Configuration**
+### Leviathan-LSTM (Large-Scale Recurrent Model)
 
-| Component            | Value          |
-| -------------------- | -------------- |
-| Model Name           | **Scribe-γ**   |
-| Architecture         | 4-layer GRU    |
-| Embedding Dim        | 384            |
-| Hidden Dim           | 768            |
-| Dropout              | 0.15           |
-| Epochs               | 20             |
-| Learning Rate        | 1e-3           |
-| Trainable Parameters | **14,439,400** |
-| Model Size           | **55.1 MB**    |
+Purpose:
+- compare LSTM vs GRU gating at scale
+- study explicit cell-state memory retention
+- observe over-capacity behavior on small corpora
+
+This model serves as a **stress test** for recurrent architectures.
 
 ---
 
-## **4.3 Leviathan-LSTM (Large-Scale Recurrent Language Model)**
-
-* Dataset: Tiny Shakespeare
-* Tokenization: Characters
-* Objective: Next-character prediction
-* Purpose:
-
-  * study **LSTM gating vs GRU gating** at scale
-  * analyze **long-range memory retention** under explicit cell state
-  * evaluate **over-capacity recurrent models** on small corpora
-  * compare convergence and overfitting behavior against deep GRUs
-
-Leviathan-LSTM represents a **capacity-stress test** for recurrent architectures, pushing LSTM recurrence to ~24M parameters while maintaining correct stateful inference and layer-wise memory separation.
-
----
-
-### **Leviathan-LSTM Configuration**
-
-| Component            | Value                       |
-| -------------------- | --------------------------- |
-| Model Name           | **Leviathan-LSTM**          |
-| Architecture         | 3-layer LSTM (from scratch) |
-| Embedding Dim        | 768                         |
-| Hidden Dim           | 1024                        |
-| Dropout              | 0.2                         |
-| Epochs               | 6                           |
-| Optimizer            | AdamW                       |
-| Learning Rate        | 1e-3                        |
-| Weight Decay         | 0.01                        |
-| Scheduler            | CosineAnnealingLR           |
-| Batch Size           | 64                          |
-| Sequence Length      | 128                         |
-| Device               | CUDA                        |
-| Trainable Parameters | **24,248,129**              |
-| Model Size           | **92.50 MB**                |
-
----
-
-### **Architecture**
-
-```
-Embedding
-   ↓
-LSTMLayer (Layer 1)
-   ↓
-LSTMLayer (Layer 2)
-   ↓
-LSTMLayer (Layer 3)
-   ↓
-LayerNorm
-   ↓
-Linear Projection
-```
-
-Each LSTM layer maintains **independent hidden and cell states**
-$((h_t^{(l)}, c_t^{(l)}))$, ensuring proper hierarchical memory flow.
-
----
-
-### **Implementation Notes**
-
-* LSTM cell implemented **from scratch** (no `nn.LSTM`)
-* Single bias per gate (input-side), differing from PyTorch’s dual-bias design
-* Explicit management of:
-
-  * hidden state $(h_{t})$
-  * cell state $(c_{t})$
-* **No in-place state mutation**, ensuring autograd correctness
-* Stateful inference with manual propagation of (h, c) across time
-
----
-
-### **Training Behavior**
-
-Leviathan-LSTM exhibits **rapid convergence** due to its large memory capacity:
-
-* validation loss reaches minimum within **3 epochs**
-* overfitting begins early, consistent with over-parameterized recurrent models
-* training was intentionally limited to **6 epochs** to preserve generalization
-
-This behavior contrasts with GRU-γ, which requires more epochs to reach comparable expressiveness.
-
----
-
-### **Comparative Context**
-
-| Model          | Params (M) | Layers | Memory Type   | Overfitting Onset |
-| -------------- | ---------- | ------ | ------------- | ----------------- |
-| Astra-γ GRU    | 4.38       | 3      | Hidden only   | Late              |
-| Scribe-γ GRU   | 14.44      | 4      | Hidden only   | Medium            |
-| Leviathan-LSTM | 24.25      | 3      | Hidden + Cell | Early             |
-
-Leviathan-LSTM confirms that **capacity amplifies both learning speed and memorization risk**, reinforcing the importance of early stopping and inference-time correctness.
-
----
-
-### **Key Takeaway**
-
-> LSTM cell state enables stronger long-range dependency modeling than GRUs, but large LSTM models on small corpora converge extremely fast and must be trained conservatively.
-
-Leviathan-LSTM serves as a **reference point** for understanding how explicit memory gates scale in recurrent architectures.
-
-
-## **5. Key Experimental Findings**
+## Key Experimental Findings
 
 1. **Training loss alone cannot validate recurrent models**
 2. **A GRU without carried state is functionally non-recurrent**
-3. **Correct inference yields larger gains than increased depth or epochs**
-4. **Subword models amplify inference-time errors**
+3. **Correct inference matters more than architectural depth**
+4. **Subword modeling amplifies state-handling errors**
 5. **Implementation correctness precedes model scaling**
 
 ---
 
-## **6. Implementation Notes**
+## Implementation Principles
 
-* All models are implemented **from scratch**
-* No use of:
+- No use of `nn.RNN`, `nn.GRU`, or `nn.LSTM`
+- Explicit hidden-state and cell-state management
+- No in-place mutation of recurrent state
+- Separation of:
+  - model definition
+  - training logic
+  - experimentation
+  - visualization
 
-  * `nn.RNN`
-  * `nn.GRU`
-  * `nn.LSTM`
-* PyTorch is used only for:
-
-  * tensor operations
-  * automatic differentiation
-  * optimization
-* Hidden-state propagation is **explicit and manually controlled**
-
-
-## See [Appendix A — Formal Recurrent Model Equations](docs/appendix_equations.md) for the full mathematical formulation.
-
-
-## **7. References**
-
-* Bengio et al., 2003 — *A Neural Probabilistic Language Model*
-* Cho et al., 2014 — *Learning Phrase Representations using RNN Encoder–Decoder*
-* Hochreiter & Schmidhuber, 1997 — *Long Short-Term Memory*
-* Karpathy, 2022 — *makemore*
+The implementations in `src/` are **consolidated results**, not exploratory code.
 
 ---
 
-## **Conclusion**
+## References
 
-> In sequence modeling, **correctness of recurrence matters more than architectural scale**.
+- Bengio et al., 2003 — *A Neural Probabilistic Language Model*  
+- Cho et al., 2014 — *Learning Phrase Representations using RNN Encoder–Decoder*  
+- Hochreiter & Schmidhuber, 1997 — *Long Short-Term Memory*  
+- Vaswani et al., 2017 — *Attention Is All You Need*  
+- Karpathy, 2022 — *makemore*
 
-This repository demonstrates—through direct implementation and controlled experimentation—that **stateful inference is fundamental to recurrent language models**, and that violating this assumption silently invalidates model behavior.
+---
+
+## Conclusion
+
+> In sequence modeling, **architectural correctness matters more than scale**.
+
+This repository demonstrates — through derivation, implementation, and controlled experimentation — that violating modeling assumptions can silently invalidate results, even when training appears successful.
+
+Understanding **why architectures evolved** is essential to using them correctly.
