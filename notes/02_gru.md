@@ -253,5 +253,5 @@ That step leads to **explicit cell-based recurrent models**.
 
 ### GRU Gate Formulation and Update Dynamics:
 
-![GRU Gate Derivation](../../math/gru/gru_gate_derivation_01.png)  
-![GRU Gate Derivation](../../math/gru/gru_gate_derivation_02.png)
+- [GRU Gate Derivation — formulation 1](../math/gru/gru_gate_derivation_01.png)  
+- [GRU Gate Derivation — formulation 2](../math/gru/gru_gate_derivation_02.png)
