@@ -28,8 +28,4 @@ shakespeare_bpe.vocab
 # scribe_saved_models/     # Subword-level (SentencePiece) GRU language models trained on Tiny Shakespeare
 # leviathan_saved_model/   # Large-scale LSTM checkpoints (Leviathan-LSTM) trained on Tiny Shakespeare
 # -----------------------------------------------------------------------------
-
-gru_saved_models/
-astra_saved_models/
-scribe_saved_models/
-leviathan_saved_model/
+artifacts/
