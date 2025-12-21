@@ -1,0 +1,9 @@
+# This project intentionally avoids high-level model abstractions.
+# Dependencies are kept minimal to emphasize mathematical clarity
+# and architectural correctness over tooling convenience.
+numpy>=1.23
+torch>=2.0
+sentencepiece>=0.1.99
+jupyter>=1.0
+ipykernel>=6.0
+matplotlib>=3.7
