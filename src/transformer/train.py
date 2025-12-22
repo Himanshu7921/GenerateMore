@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     print_model_summary(config = config, model = model)
 
-    steps = 8000
+    steps = 7000
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
     loss_fn = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
