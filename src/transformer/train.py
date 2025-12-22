@@ -90,7 +90,7 @@ if __name__ == "__main__":
 
     print_model_summary(config = config, model = model)
 
-    steps = 5000
+    steps = 8000
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
     loss_fn = nn.CrossEntropyLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -108,7 +108,16 @@ if __name__ == "__main__":
         steps = steps,
         batch_size = 128,
         config = config,
-        print_interval = 20,
+        print_interval = 100,
+    )
+
+    # Save the Trained Model
+    save_checkpoint(
+        model=model,
+        optimizer=optimizer,
+        config=config,
+        step=steps,
+        path="checkpoints/decoder_only_transformer_final_trained_model.pt"
     )
     # ----------------------------------- Generation from the Model ------------------------------------------------------
     start_text = "ROMEO:"
