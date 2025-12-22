@@ -6,6 +6,7 @@ self_practice/
 tiny_shakespeare.txt
 shakespeare_bpe.model
 shakespeare_bpe.vocab
+checkpoints/
 
 # -----------------------------------------------------------------------------
 # Trained Model Artifacts (Excluded from Version Control)
