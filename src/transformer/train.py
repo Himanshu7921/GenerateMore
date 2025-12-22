@@ -106,7 +106,7 @@ if __name__ == "__main__":
         loss_fn = loss_fn,
         device = device,
         steps = steps,
-        batch_size = 128,
+        batch_size = 64,
         config = config,
         print_interval = 100,
     )
