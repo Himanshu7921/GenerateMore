@@ -62,9 +62,10 @@ class EmbeddingBlock(nn.Module):
         else:
             self.pos_embedding = LearnedPositionalEmbeddings(max_seq_length, d_model)
         self.token_embedding = TokenEmbeddings(vocab_size, d_model)
+        self.d_model = d_model
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor):
-        x_token_embd = self.token_embedding(x)
+        x_token_embd = self.token_embedding(x) * (self.d_model ** 0.5)
         x_pos_embd = self.pos_embedding(x_token_embd)
         return self.dropout(x_pos_embd)
