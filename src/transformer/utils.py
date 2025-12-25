@@ -2,6 +2,18 @@ import torch
 import os
 from dataclasses import dataclass
 
+@dataclass
+class TransformerConfig:
+    vocab_size: int = 65 # we can get this value by loading the data and get len(chars) | self.chars = sorted(list(set(text)))
+    d_model: int = 384
+    d_ff: int = 4 * d_model # Original Paper used d_ff as 4 * d_model
+    n_layers: int = 6
+    n_heads: int = 6
+    dropout: float = 0.2
+    seq_length:int = 128
+    max_seq_length: int = 256
+    steps = 200000
+    use_fixed_positional_embeddings = True
 
 def causal_mask(seq_length: int, device: torch.device) -> torch.Tensor:
     """
@@ -16,6 +28,8 @@ def load_checkpoint(
     path: str,
     model_class,
     device: torch.device,
+    optimizer = None,
+    scheduler = None
 ):
     checkpoint = torch.load(path, map_location=device, weights_only=False)
 
@@ -27,38 +41,54 @@ def load_checkpoint(
         d_model=config.d_model,
         d_ff=config.d_ff,
         h=config.n_heads,
-        use_fixed_positional_embeddings=True,
+        use_fixed_positional_embeddings = config.use_fixed_positional_embeddings,
         dropout=config.dropout,
         N=config.n_layers,
     ).to(device)
 
     model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-
     print(f"[✓] Model loaded from {path}")
 
-    return model, checkpoint
+    if optimizer is not None and "optimizer_state_dict" in checkpoint:
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        print("[✓] Optimizer state restored")
+    
+    if scheduler is not None and "scheduler_state_dict" in checkpoint:
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        print("[✓] Scheduler state restored")
 
+    model.eval()
+    return model, optimizer, scheduler, checkpoint
+
+
+import os
+import torch
 
 def save_checkpoint(
     model,
-    optimizer,
-    config,
-    step: int,
+    optimizer=None,
+    scheduler=None,
+    config=None,
+    step: int = 0,
     path: str = "checkpoint.pt"
 ):
     os.makedirs(os.path.dirname(path), exist_ok=True)
+
     checkpoint = {
         "model_state_dict": model.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        "config": config,
         "step": step,
+        "config": config,
     }
+    if optimizer is not None:
+        checkpoint["optimizer_state_dict"] = optimizer.state_dict()
+    if scheduler is not None:
+        checkpoint["scheduler_state_dict"] = scheduler.state_dict()
+
     torch.save(checkpoint, path)
     print(f"[✓] Model checkpoint saved to {path}")
 
 
-def print_model_summary(config, model):
+def print_model_summary(config: TransformerConfig, model):
     print("=" * 144)
     print("                                                 Decoder-Only Transformer Model Summary")
     print("=" * 144)
@@ -75,6 +105,7 @@ def print_model_summary(config, model):
 
     print("\n[Embedding]")
     print(f"  • Embedding dimension    : {config.d_model}")
+    print(f"  • Positional Embedding Type     : {'Fixed-Sinusoidal' if config.use_fixed_positional_embeddings else 'Learned'} Positional Embedding")
 
     print("\n[Transformer Architecture]")
     print(f"  • Number of layers       : {config.n_layers}")
@@ -84,6 +115,9 @@ def print_model_summary(config, model):
 
     print("\n[Regularization]")
     print(f"  • Dropout                : {config.dropout}")
+
+    print("\n[Training Steps]")
+    print(f"  • Steps:         : {config.steps}")
 
     # Parameter count
     total_params = sum(p.numel() for p in model.parameters())
@@ -99,17 +133,9 @@ def print_model_summary(config, model):
 
     print("=" * 144)
 
+def checkpoint_name(prefix="step", step=0):
+    return f"{prefix}_{step:07d}.pt"
 
-@dataclass
-class TransformerConfig:
-    vocab_size: int = 65 # we can get this value by loading the data and get len(chars) | self.chars = sorted(list(set(text)))
-    d_model: int = 512
-    d_ff: int = 4 * d_model # Original Paper used d_ff as 4 * d_model
-    n_layers: int = 6
-    n_heads: int = 8
-    dropout: float = 0.1
-    seq_length = 90
-    max_seq_length: int = 256
 
 class DataLoader:
     def __init__(self, dataset_address: str = "tiny_shakespeare.txt", *, seq_length: int):
@@ -147,15 +173,19 @@ def top_k_logits(logits: torch.Tensor, k: int):
 def top_p_logits(logits: torch.Tensor, p: float):
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     probs = torch.softmax(sorted_logits, dim=-1)
+
     cum_probs = torch.cumsum(probs, dim=-1)
 
-    cutoff = cum_probs > p
-    cutoff[..., 1:] = cutoff[..., :-1].clone()
-    cutoff[..., 0] = False
+    keep = cum_probs <= p
+    keep[..., 0] = True
 
-    sorted_logits[cutoff] = -1e9
-    logits.scatter_(1, sorted_indices, sorted_logits)
-    return logits
+    masked_logits = sorted_logits.masked_fill(~keep, -1e9)
+
+    new_logits = torch.full_like(logits, -1e9)
+    new_logits.scatter_(1, sorted_indices, masked_logits)
+
+    return new_logits
+
 
 @torch.no_grad()
 def generate(
@@ -168,7 +198,8 @@ def generate(
     top_p=None,
 ):
     model.eval()
-    max_T = model.embeddings.pos_embedding.max_seq_length
+    # max_T = model.embeddings.pos_embedding.max_seq_length // 2 # 256//2 = 128
+    max_T = TransformerConfig.seq_length # 256//2 = 128
 
     for _ in range(max_new_tokens):
 
