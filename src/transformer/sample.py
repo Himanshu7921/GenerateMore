@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from utils import TransformerConfig, causal_mask, DataLoader, generate, print_model_summary, save_checkpoint, load_checkpoint
+from utils import TransformerConfig, causal_mask, DataLoader, generate, print_model_summary, save_checkpoint, load_checkpoint, checkpoint_name
 from model import DecoderOnlyTransformerModel
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def load_data(address="tiny_shakespeare.txt"):
     config = TransformerConfig()
@@ -9,32 +10,39 @@ def load_data(address="tiny_shakespeare.txt"):
     return loader, config
 
 dataloader, config = load_data()
-loaded_model, _ = load_checkpoint(
-    path="checkpoints/decoder_only_transformer.pt",
+steps = config.steps # # Load the Training Steps directly from Config File
+path = f"checkpoints/{checkpoint_name(prefix='final', step = steps)}"
+path = "checkpoints/best_val_0072000.pt"
+loaded_model, _, _, _ = load_checkpoint(
+    path = path,
     model_class=DecoderOnlyTransformerModel,
     device=device,
 )
 
 loaded_model.eval()
+for i in range(5):
+    print(f"sample: {i+1}/{5}")
+    start_text = "ROMEO:"
+    start_ids = torch.tensor(
+        [[dataloader.stoi[c] for c in start_text]],
+        dtype=torch.long,
+        device=device
+    )
 
-start_text = "ROMEO:"
-start_ids = torch.tensor(
-    [[dataloader.stoi[c] for c in start_text]],
-    dtype=torch.long,
-    device=device
-)
+    generated_ids_gpt_style_loaded_model = generate(
+            model = loaded_model,
+            idx = start_ids,
+            max_new_tokens = 1000,
+            device = device,
+            temperature = 0.7,
+            top_k = 50,
+            top_p = None,
+    )
 
-generated_ids_gpt_style_loaded_model = generate(
-        model = loaded_model,
-        idx = start_ids,
-        max_new_tokens = 300,
-        device = device,
-        temperature = 0.8,
-        top_k = None,
-        top_p = 0.9,
-)
+    # decode back to text
+    print("device", device)
+    gpt_style_generated_text_loaded_model = "".join([dataloader.itos[i.item()] for i in generated_ids_gpt_style_loaded_model[0]])
+    print("GPT Style Sampling from Loaded Model: ")
+    print(gpt_style_generated_text_loaded_model)
 
-# decode back to text
-gpt_style_generated_text_loaded_model = "".join([dataloader.itos[i.item()] for i in generated_ids_gpt_style_loaded_model[0]])
-print("GPT Style Sampling from Loaded Model: ")
-print(gpt_style_generated_text_loaded_model)
+    print("-"*40)
