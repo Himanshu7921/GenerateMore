@@ -1,7 +1,11 @@
 import torch
 import torch.nn as nn
-from utils import TransformerConfig, causal_mask, DataLoader, generate, print_model_summary, save_checkpoint, load_checkpoint
+from utils import TransformerConfig, causal_mask, DataLoader, generate, print_model_summary, save_checkpoint, load_checkpoint, checkpoint_name
 from model import DecoderOnlyTransformerModel
+from torch.optim.lr_scheduler import LambdaLR
+import math
+from torch.utils.tensorboard import SummaryWriter
+
 
 
 def load_data(address="tiny_shakespeare.txt"):
@@ -20,6 +24,10 @@ def train_model(model: DecoderOnlyTransformerModel,
             config: TransformerConfig,
             device: torch.device):
     model.train()
+    best_val_loss = float("inf")
+    bad_steps = 0
+    patience = 5
+    writer = SummaryWriter(log_dir="runs/transformer_training")
     
     # Train the Model and Return it
     for step in range(steps):
@@ -47,32 +55,74 @@ def train_model(model: DecoderOnlyTransformerModel,
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # Gradient clipping
         optimizer.step()
         scheduler.step()
+        writer.add_scalar("Loss/train", loss.item(), step)
 
         if step % print_interval == 0 and step != 0:
             model.eval()
             with torch.no_grad():
                 x_val, y_val = dataloader.get_batch(split = "val", batch_size = batch_size, device = device)
+
                 logits = model(x_val, causal_mask(x_val.shape[1], device))
                 val_loss = loss_fn(logits.reshape(-1, logits.size(-1)), y_val.reshape(-1))
+
+                writer.add_scalar("Loss/train", loss.item(), step)
+                writer.add_scalar("Loss/val", val_loss.item(), step)
                 print(f"Step {step}/{steps} | Training Loss {loss.item():.4f} | Validation Loss: {val_loss:.4f}")
+
+                # Early stop check, and save the best Generalized weights so far
+                if val_loss < best_val_loss:
+                    path = f"checkpoints/{checkpoint_name(prefix='best_val', step=step)}"
+                    best_val_loss = val_loss
+                    bad_steps = 0
+                    # Save the best Generalized Model: path = 'checkpoints/best_val_{step}.pt'
+                    save_checkpoint(
+                        model=model,
+                        optimizer=None,
+                        scheduler=None,
+                        config=config,
+                        step=step,
+                        path = path
+                    )
+                    print(f"Saved checkpoint at Setp: {step} | path = {path}")
+                else:
+                    bad_steps += 1
+                    print(f"[Early Stop] Validation loss increased {bad_steps} times")
+
+                if bad_steps >= patience:
+                    print(f"\nEarly stopping triggered at step {step}.")
+                    path = f"checkpoints/{checkpoint_name(prefix='early_stop', step=step)}"
+                    save_checkpoint(
+                        model=model,
+                        optimizer=optimizer,
+                        scheduler=scheduler,
+                        config=config,
+                        step=step,
+                        path = path
+                    )
+                    print(f"Saved checkpoint at Setp: {step} | path = {path}")
+                    writer.close()
+                    return model
+                # --------------------------------
             model.train()
         
-        if step % 1000 == 0:
+        if step % 5000 == 0 and step != 0:
+            path = f"checkpoints/{checkpoint_name(step=step)}"
             save_checkpoint(
                 model=model,
                 optimizer=optimizer,
+                scheduler=scheduler,
                 config=config,
                 step=step,
-                path="checkpoints/decoder_only_transformer.pt"
+                path = path
             )
+            print(f"Saved checkpoint at Setp: {step} | path = {path}")
 
-
+    writer.close()
     return model
 
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     dataloader, config = load_data()
 
     model = DecoderOnlyTransformerModel(
@@ -90,14 +140,24 @@ if __name__ == "__main__":
 
     print_model_summary(config = config, model = model)
 
-    steps = 7000
-    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+    steps = config.steps # Load the Training Steps directly from Config File
+    optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay = 0.1)
     loss_fn = nn.CrossEntropyLoss()
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=steps,
-        eta_min=3e-5
-    )
+
+    # Warmup + CosineLR Decay for Transformers
+    warmup_steps = 2000
+    min_lr_scale = 3e-5 / 3e-4  # = 0.1
+
+    def lr_lambda(step):
+        if step < warmup_steps:
+            return step / warmup_steps
+
+        cosine_progress = (step - warmup_steps) / (steps - warmup_steps)
+        return min_lr_scale + 0.5 * (1 - min_lr_scale) * (1 + math.cos(math.pi * cosine_progress))
+    
+    # Tie with Scheduler
+    scheduler = LambdaLR(optimizer, lr_lambda)
+    print("> Training on Device: ", device)
     model = train_model(
         model = model,
         dataloader = dataloader,
@@ -108,17 +168,20 @@ if __name__ == "__main__":
         steps = steps,
         batch_size = 64,
         config = config,
-        print_interval = 100,
+        print_interval = 1000,
     )
 
     # Save the Trained Model
+    path = f"checkpoints/{checkpoint_name(prefix='final', step = steps)}"
     save_checkpoint(
         model=model,
-        optimizer=optimizer,
+        optimizer=None,
+        scheduler=None,
         config=config,
         step=steps,
-        path="checkpoints/decoder_only_transformer_final_trained_model.pt"
+        path = path
     )
+    print(f"Final Saved checkpoint After Training at path = {path}")
     # ----------------------------------- Generation from the Model ------------------------------------------------------
     start_text = "ROMEO:"
     start_ids = torch.tensor(
