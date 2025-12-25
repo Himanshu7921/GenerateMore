@@ -7,6 +7,8 @@ tiny_shakespeare.txt
 shakespeare_bpe.model
 shakespeare_bpe.vocab
 checkpoints/
+__pycache__/
+runs/
 
 # -----------------------------------------------------------------------------
 # Trained Model Artifacts (Excluded from Version Control)
