@@ -84,7 +84,7 @@ class LinearProjection(nn.Module):
         In the Original Implementation they called it as Linear, and is been used after Decoder Blocks
         """
         super().__init__()
-        self.linear_layer = nn.Linear(in_features = d_model, out_features = vocab_size)
+        self.linear_layer = nn.Linear(in_features = d_model, out_features = vocab_size, bias = False)
     
     def forward(self, x):
         return self.linear_layer(x)
