@@ -22,6 +22,9 @@ class DecoderOnlyTransformerModel(nn.Module):
                     dropout = dropout)
         
         self.linear_projection = LinearProjection(d_model = d_model, vocab_size = vocab_size)
+
+        # Weight Tying, weight of Projected layer = Weight of Token embedding Layer
+        self.linear_projection.linear_layer.weight = self.embeddings.token_embedding.embeddings.weight
     
     def forward(self, x: torch.Tensor, mask: torch.Tensor):
         # x.shape = (B, T)
